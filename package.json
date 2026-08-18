@@ -1,0 +1,12 @@
+{
+  "name": "ai-gateway-4-of-10-context-session",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.js",
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "redis": "^4.6.14",
+    "prom-client": "^15.1.0"
+  }
+}

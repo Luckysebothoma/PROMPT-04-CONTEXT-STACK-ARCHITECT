@@ -1,0 +1,7 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://ai_gateway_4_of_10_prometheus:9090
+    isDefault: true

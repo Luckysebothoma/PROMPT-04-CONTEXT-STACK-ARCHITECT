@@ -1,0 +1,86 @@
+networks:
+  ai_gateway_shared_net:
+    external: true
+
+volumes:
+  ai_gateway_4_of_10_pg_data:
+  ai_gateway_4_of_10_grafana_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_gateway_4_of_10_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ai_gateway_4_of_10_pg_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ai_gateway_shared_net]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai_gateway_4_of_10_redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ai_gateway_shared_net]
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: ai_gateway_4_of_10_api
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      STACK3_URL: ${STACK3_URL}
+      PORT: ${PORT}
+      HOST: ${HOST}
+      LOG_LEVEL: ${LOG_LEVEL}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS}
+      CONTEXT_MAX_MESSAGES: ${CONTEXT_MAX_MESSAGES}
+    ports:
+      - "${API_PORT_HOST}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [ai_gateway_shared_net]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai_gateway_4_of_10_prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "${PROMETHEUS_PORT_HOST}:9090"
+    networks: [ai_gateway_shared_net]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai_gateway_4_of_10_grafana
+    volumes:
+      - ai_gateway_4_of_10_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "${GRAFANA_PORT_HOST}:3000"
+    networks: [ai_gateway_shared_net]
+    restart: unless-stopped
