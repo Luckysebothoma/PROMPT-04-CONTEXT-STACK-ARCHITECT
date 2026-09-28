@@ -23,6 +23,7 @@ services:
       retries: 10
     networks:
       - ai-gateway-net
+      - obs-network
     restart: always
 
 
@@ -31,6 +32,8 @@ networks:
   ai-gateway-net:
     external: true
   databases:
+    external: true
+  obs-network:
     external: true
 volumes:
   ai_gateway_4_of_10_pg_data:

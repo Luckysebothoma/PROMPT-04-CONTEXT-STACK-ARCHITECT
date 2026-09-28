@@ -357,13 +357,20 @@ app.post('/v1/chat', async (req, res) => {
 
     let session = sessionId ? await ensureSession(sessionId) : null;
     if (!session) {
+
+      // lets call /v1/chat - this will ensure we reuse what we have and we will only accept plain
+
+      /*
+      REdudant
       sessionId = sessionId || genId();
       await pool.query(
         'INSERT INTO sessions (id, user_id, agent_name, metadata, status) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING',
         [sessionId, metadata.user_id || 'anonymous', agentName, JSON.stringify(metadata), 'active']
       );
       session = await ensureSession(sessionId);
-    }
+
+      */
+    } 
 
     const context = await withTimeout(buildContext(sessionId, message, instruction, CONTEXT_MAX_MESSAGES), REQUEST_TIMEOUT_MS, 'build context');
 
