@@ -264,9 +264,23 @@ app.post('/v1/session/:session_id/messages', async (req, res) => {
 });
 
 async function getMessages(sessionId, limit) {
+  // Select the newest N messages first, then return that window oldest-to-newest.
+  // This keeps recent context within the limit while preserving conversation order
+  // for the model consuming it.
+  const safeLimit = Number.isInteger(limit) && limit > 0
+    ? Math.min(limit, 500)
+    : CONTEXT_MAX_MESSAGES;
   const r = await pool.query(
-    'SELECT id, role, content, metadata, created_at FROM messages WHERE session_id = $1 ORDER BY created_at ASC LIMIT $2',
-    [sessionId, limit]
+    `SELECT id, role, content, metadata, created_at
+       FROM (
+         SELECT id, role, content, metadata, created_at
+           FROM messages
+          WHERE session_id = $1
+          ORDER BY created_at DESC, id DESC
+          LIMIT $2
+       ) AS recent_messages
+      ORDER BY created_at ASC, id ASC`,
+    [sessionId, safeLimit]
   );
   return r.rows;
 }
